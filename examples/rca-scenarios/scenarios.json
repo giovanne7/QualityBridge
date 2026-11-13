@@ -1,0 +1,253 @@
+[
+  {
+    "id": "py-regressao-linha",
+    "description": "Commit recente altera a linha da aplicação que aparece no stack trace; um commit mais antigo que a última aprovação deve ser ignorado.",
+    "runner": "pytest",
+    "previous": ["passed"],
+    "case": {
+      "name": "test_discount_for_vip",
+      "classname": "tests.test_pricing",
+      "status": "failed",
+      "message": "assert 90.0 == 80.0\n +  where 90.0 = apply_discount(100, 'vip')",
+      "stack_trace": "def test_discount_for_vip():\n>       assert apply_discount(100, 'vip') == 80.0\n\ntests/test_pricing.py:9: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\n    def apply_discount(value, tier):\n>       return value * (1 - RATES[tier])\nE       assert 90.0 == 80.0\n\nsrc/pricing.py:12: AssertionError"
+    },
+    "changes": [
+      {
+        "sha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+        "subject": "ajusta tabela de descontos",
+        "date": "2026-01-01T12:00:00+00:00",
+        "files": ["src/pricing.py"],
+        "diff": "diff --git a/src/pricing.py b/src/pricing.py\n--- a/src/pricing.py\n+++ b/src/pricing.py\n@@ -8,6 +8,6 @@ RATES = {\n-    'vip': 0.20,\n+    'vip': 0.10,\n }\n \n def apply_discount(value, tier):\n     return value * (1 - RATES[tier])\n"
+      },
+      {
+        "sha": "0000aaaa1111bbbb2222cccc3333dddd4444eeee",
+        "subject": "cria módulo de preços",
+        "date": "2025-12-20T10:00:00+00:00",
+        "files": ["src/pricing.py"],
+        "diff": "diff --git a/src/pricing.py b/src/pricing.py\n--- /dev/null\n+++ b/src/pricing.py\n@@ -0,0 +1,12 @@\n+RATES = {}\n"
+      }
+    ],
+    "expected": {"category": "regressao_codigo", "sha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"}
+  },
+  {
+    "id": "py-simbolo-alterado",
+    "description": "A falha cita divide(); o commit altera o corpo dessa função, embora o stack trace mostre só o teste.",
+    "runner": "pytest",
+    "previous": ["passed"],
+    "case": {
+      "name": "test_divide",
+      "classname": "tests.test_calc",
+      "status": "failed",
+      "message": "assert 3 == 2\n +  where 3 = divide(4, 2)",
+      "stack_trace": "def test_divide():\n>       assert divide(4, 2) == 2\nE       assert 3 == 2\nE        +  where 3 = divide(4, 2)\n\ntests/test_calc.py:7: AssertionError"
+    },
+    "changes": [
+      {
+        "sha": "b2c3d4e5f6071829",
+        "subject": "otimiza divisão",
+        "date": "2026-01-01T12:00:00+00:00",
+        "files": ["src/calc.py"],
+        "diff": "diff --git a/src/calc.py b/src/calc.py\n--- a/src/calc.py\n+++ b/src/calc.py\n@@ -1,5 +1,5 @@\n def divide(a, b):\n-    return a / b\n+    return a // b + 1\n \n \n def total(items):\n"
+      }
+    ],
+    "expected": {"category": "regressao_codigo", "sha": "b2c3d4e5f6071829"}
+  },
+  {
+    "id": "py-contrato-api",
+    "description": "Chamada com argumento que a função não aceita mais; sem histórico Git disponível.",
+    "runner": "pytest",
+    "previous": [],
+    "case": {
+      "name": "test_create_user",
+      "classname": "tests.test_users",
+      "status": "failed",
+      "message": "TypeError: create_user() got an unexpected keyword argument 'email'",
+      "stack_trace": "def test_create_user():\n>       user = create_user(name='Ana', email='ana@example.com')\nE       TypeError: create_user() got an unexpected keyword argument 'email'\n\ntests/test_users.py:4: TypeError"
+    },
+    "changes": [],
+    "expected": {"category": "contrato_api", "sha": null}
+  },
+  {
+    "id": "py-ambiente",
+    "description": "Dependência não instalada no ambiente de execução.",
+    "runner": "pytest",
+    "previous": [],
+    "case": {
+      "name": "tests/test_client.py",
+      "classname": "",
+      "status": "error",
+      "message": "ModuleNotFoundError: No module named 'requests'",
+      "stack_trace": "ImportError while importing test module 'tests/test_client.py'.\nE   ModuleNotFoundError: No module named 'requests'"
+    },
+    "changes": [],
+    "expected": {"category": "ambiente_configuracao", "sha": null}
+  },
+  {
+    "id": "py-servico-externo",
+    "description": "Serviço de banco indisponível durante o teste.",
+    "runner": "pytest",
+    "previous": ["passed"],
+    "case": {
+      "name": "test_save_order",
+      "classname": "tests.test_orders",
+      "status": "error",
+      "message": "ConnectionRefusedError: [Errno 111] Connection refused",
+      "stack_trace": "    def connect(self):\n>       sock.connect((self.host, self.port))\nE       ConnectionRefusedError: [Errno 111] Connection refused\n\nsrc/db.py:21: ConnectionRefusedError"
+    },
+    "changes": [
+      {
+        "sha": "c3d4e5f607182930",
+        "subject": "atualiza README",
+        "date": "2026-01-01T12:00:00+00:00",
+        "files": ["README.md"],
+        "diff": "diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n@@ -1,1 +1,2 @@\n # Loja\n+Instruções de instalação.\n"
+      }
+    ],
+    "expected": {"category": "dependencia_externa", "sha": null}
+  },
+  {
+    "id": "pw-seletor",
+    "description": "Playwright esgota o tempo aguardando um seletor que deixou de existir; o commit muda o HTML.",
+    "runner": "playwright",
+    "previous": ["passed"],
+    "case": {
+      "name": "login com usuário válido",
+      "classname": "login.spec.js",
+      "status": "failed",
+      "message": "TimeoutError: locator.click: Timeout 5000ms exceeded.\nCall log:\n  - waiting for locator('#login-button')",
+      "stack_trace": "    at /app/tests/login.spec.js:8:15"
+    },
+    "changes": [
+      {
+        "sha": "d4e5f60718293a4b",
+        "subject": "renomeia botão de login",
+        "date": "2026-01-01T12:00:00+00:00",
+        "files": ["public/index.html"],
+        "diff": "diff --git a/public/index.html b/public/index.html\n--- a/public/index.html\n+++ b/public/index.html\n@@ -12,1 +12,1 @@\n-<button id=\"login-button\">Entrar</button>\n+<button id=\"signin-button\">Entrar</button>\n"
+      }
+    ],
+    "expected": {"category": "seletor_interface", "sha": null}
+  },
+  {
+    "id": "jest-assercao-sem-relacao",
+    "description": "Asserção Jest falha e o único commit recente é documentação; não deve haver falso vínculo com Git.",
+    "runner": "jest",
+    "previous": [],
+    "case": {
+      "name": "soma itens do carrinho",
+      "classname": "cart",
+      "status": "failed",
+      "message": "expect(received).toBe(expected) // Object.is equality\n\nExpected: 10\nReceived: 9",
+      "stack_trace": "    at Object.<anonymous> (src/__tests__/cart.test.js:14:23)"
+    },
+    "changes": [
+      {
+        "sha": "e5f607182930a4b5",
+        "subject": "documenta API",
+        "date": "2026-01-01T12:00:00+00:00",
+        "files": ["docs/api.md"],
+        "diff": "diff --git a/docs/api.md b/docs/api.md\n--- a/docs/api.md\n+++ b/docs/api.md\n@@ -1,1 +1,2 @@\n # API\n+GET /cart\n"
+      }
+    ],
+    "expected": {"category": "assercao_divergente", "sha": null}
+  },
+  {
+    "id": "py-intermitente",
+    "description": "O teste alterna aprovação e falha no histórico, sem alterações no código.",
+    "runner": "pytest",
+    "previous": ["passed", "failed", "passed", "failed", "passed"],
+    "case": {
+      "name": "test_report_generated_today",
+      "classname": "tests.test_reports",
+      "status": "failed",
+      "message": "assert '2026-01-01' == '2026-01-02'",
+      "stack_trace": "def test_report_generated_today():\n>       assert report.day == today()\nE       assert '2026-01-01' == '2026-01-02'\n\ntests/test_reports.py:15: AssertionError"
+    },
+    "changes": [],
+    "expected": {"category": "intermitencia", "sha": null}
+  },
+  {
+    "id": "py-teste-alterado",
+    "description": "Somente o arquivo do teste mudou recentemente; a causa não deve ser atribuída à aplicação.",
+    "runner": "pytest",
+    "previous": ["passed"],
+    "case": {
+      "name": "test_invoice_total",
+      "classname": "tests.test_invoice",
+      "status": "failed",
+      "message": "assert 150 == 105",
+      "stack_trace": "def test_invoice_total():\n>       assert invoice_total([100, 50]) == 105\nE       assert 150 == 105\n\ntests/test_invoice.py:6: AssertionError"
+    },
+    "changes": [
+      {
+        "sha": "f60718293a4b5c6d",
+        "subject": "adiciona caso de nota fiscal",
+        "date": "2026-01-01T12:00:00+00:00",
+        "files": ["tests/test_invoice.py"],
+        "diff": "diff --git a/tests/test_invoice.py b/tests/test_invoice.py\n--- a/tests/test_invoice.py\n+++ b/tests/test_invoice.py\n@@ -5,1 +5,2 @@\n def test_invoice_total():\n+    assert invoice_total([100, 50]) == 105\n"
+      }
+    ],
+    "expected": {"category": "assercao_divergente", "sha": "f60718293a4b5c6d"}
+  },
+  {
+    "id": "py-alteracao-nao-commitada",
+    "description": "Alteração ainda não commitada remove a chave usada na linha que falhou.",
+    "runner": "pytest",
+    "previous": ["passed"],
+    "case": {
+      "name": "test_default_timeout",
+      "classname": "tests.test_config",
+      "status": "failed",
+      "message": "KeyError: 'timeout'",
+      "stack_trace": "    def get_timeout(settings):\n>       return settings['timeout']\nE       KeyError: 'timeout'\n\nsrc/config.py:5: KeyError"
+    },
+    "changes": [
+      {
+        "sha": "WORKTREE",
+        "subject": "alterações não commitadas",
+        "uncommitted": true,
+        "files": ["src/config.py"],
+        "diff": "diff --git a/src/config.py b/src/config.py\n--- a/src/config.py\n+++ b/src/config.py\n@@ -1,6 +1,6 @@\n-DEFAULTS = {'timeout': 30}\n+DEFAULTS = {'time_limit': 30}\n \n \n def get_timeout(settings):\n     return settings['timeout']\n"
+      }
+    ],
+    "expected": {"category": "regressao_codigo", "sha": "WORKTREE"}
+  },
+  {
+    "id": "js-contrato-linha",
+    "description": "Método chamado não existe mais; o commit alterou exatamente a linha do frame da aplicação.",
+    "runner": "jest",
+    "previous": ["passed"],
+    "case": {
+      "name": "adiciona produto",
+      "classname": "cart-page",
+      "status": "failed",
+      "message": "TypeError: this.cart.addItem is not a function",
+      "stack_trace": "TypeError: this.cart.addItem is not a function\n    at CartPage.add (src/pages/cart.js:31:12)\n    at Object.<anonymous> (src/__tests__/cart-page.test.js:9:10)"
+    },
+    "changes": [
+      {
+        "sha": "0718293a4b5c6d7e",
+        "subject": "renomeia API do carrinho",
+        "date": "2026-01-01T12:00:00+00:00",
+        "files": ["src/pages/cart.js"],
+        "diff": "diff --git a/src/pages/cart.js b/src/pages/cart.js\n--- a/src/pages/cart.js\n+++ b/src/pages/cart.js\n@@ -29,4 +29,4 @@ class CartPage {\n   add(product) {\n-    this.cart.add(product)\n+    this.cart.addItem(product)\n   }\n"
+      }
+    ],
+    "expected": {"category": "regressao_codigo", "sha": "0718293a4b5c6d7e"}
+  },
+  {
+    "id": "nao-classificada",
+    "description": "Encerramento sem mensagem útil; o agente deve admitir evidência insuficiente.",
+    "runner": "pytest",
+    "previous": [],
+    "case": {
+      "name": "test_batch_job",
+      "classname": "tests.test_jobs",
+      "status": "error",
+      "message": "Process exited with code 3",
+      "stack_trace": ""
+    },
+    "changes": [],
+    "expected": {"category": "nao_classificada", "sha": null}
+  }
+]

@@ -1,6 +1,6 @@
 # QualityBridge
 
-Agente de testes de software da AEP. Executa testes **já existentes** em projetos pytest, Playwright e Jest, seleciona suítes por configuração e gera relatórios HTML, JSON e JUnit XML, logs e histórico SQLite. Não usa LLM nem gera testes automaticamente. O MVP é uma aplicação de linha de comando, conforme `AEP_Entrega1_3agentes.pdf`.
+Agente de testes de software da AEP. Executa testes **já existentes** em projetos pytest, Playwright e Jest, seleciona suítes por configuração e gera relatórios HTML, JSON e JUnit XML, logs e histórico SQLite. Não gera testes automaticamente; o LLM é opcional e usado somente na análise de causa raiz (`qualitybridge rca --llm`). O MVP é uma aplicação de linha de comando, conforme `AEP_Entrega1_3agentes.pdf`.
 
 ## Instalação
 
@@ -28,6 +28,7 @@ qualitybridge history --json
 qualitybridge flaky
 qualitybridge quarantine
 qualitybridge suggestions
+qualitybridge rca
 ```
 
 `init` cria `qualitybridge.yaml` na pasta atual e recusa sobrescrever um arquivo existente. Ajuste os seletores e marque os testes rápidos antes de executar `quick`. Também é possível fornecer `--config caminho/qualitybridge.yaml` em cada comando, sem mudar o diretório do terminal.
@@ -106,6 +107,17 @@ A execução continua mesmo em quarentena; o estado e o motivo aparecem nos rela
 O contexto persistido inclui plataforma, versÃµes detectadas de Python e Node, modo/imagem/rede Docker, timeout e apenas os nomes das variÃ¡veis configuradas; valores de ambiente nunca sÃ£o gravados. `qualitybridge quarantine --action quarantine --test NOME --suite full --reason "motivo" --actor "responsavel"` registra uma decisÃ£o manual. Use `--action release` para removÃª-la e `--audit` para consultar o histÃ³rico de alteraÃ§Ãµes. A quarentena Ã© administrativa e nÃ£o pula a execuÃ§Ã£o: os resultados continuam sendo coletados. `qualitybridge suggestions` apresenta hipÃ³teses baseadas em padrÃµes de mensagens e stack traces, com ocorrÃªncias, exemplos de evidÃªncia e nÃ­vel de confianÃ§a; revise-as antes de alterar o teste.
 
 Em execuções locais, as versões são lidas dos executáveis usados pelo runner. Em Docker, o contexto registra a imagem configurada e não tenta inferir versões internas do container. Registros antigos continuam legíveis; execuções anteriores à inclusão do contexto aparecem sem esses dados.
+
+## Análise de causa raiz (RCA)
+
+`qualitybridge rca` investiga a última execução com falhas: interpreta mensagens e stack traces (pytest, Jest, Playwright), relaciona a falha com commits recentes e alterações não commitadas do Git, consulta o histórico e apresenta hipóteses com evidências numeradas, confiança e sugestões. O resultado também é gravado em `rca.json` na pasta da execução. Com `--llm`, um modelo configurado por variáveis de ambiente complementa a análise; respostas sem evidências válidas são descartadas e a heurística é mantida. Detalhes, configuração e validação em [docs/rca.md](docs/rca.md).
+
+```powershell
+qualitybridge rca
+qualitybridge rca --llm --commits 20
+python scripts/validate_rca.py
+python examples/rca-demo.py
+```
 
 ## Docker
 
