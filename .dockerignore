@@ -1,0 +1,7 @@
+.tools
+.venv
+.git
+**/node_modules
+**/.qualitybridge
+**/__pycache__
+*.pdf

@@ -1,0 +1,14 @@
+version: 1
+project: QualityBridge
+runner: pytest
+root: .
+output_dir: .qualitybridge
+timeout_seconds: 180
+suites:
+  full:
+    paths: [tests]
+  quick:
+    paths: [tests/test_config.py, tests/test_junit.py]
+docker:
+  image: qualitybridge:local
+  network: none

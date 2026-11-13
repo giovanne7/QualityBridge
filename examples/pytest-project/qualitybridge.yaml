@@ -1,0 +1,10 @@
+version: 1
+project: Calculadora de exemplo
+runner: pytest
+timeout_seconds: 30
+suites:
+  full:
+    paths: [tests]
+  quick:
+    paths: [tests]
+    filter: smoke

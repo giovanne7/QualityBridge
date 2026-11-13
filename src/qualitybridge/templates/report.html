@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QualityBridge — {{ run.project }}</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,sans-serif;color:#16283b;background:#f3f6fa}
+body{max-width:1100px;margin:0 auto;padding:40px 24px}header{border-bottom:3px solid #176b67;padding-bottom:24px}
+h1{font-size:32px;margin:8px 0}h2{font-size:21px}a{color:#176b67}.brand{font-weight:700;letter-spacing:.12em;color:#176b67}
+.meta{color:#506075;overflow-wrap:anywhere}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin:28px 0}
+.card{background:white;border:1px solid #dce4ed;border-radius:10px;padding:20px}.card strong{display:block;font-size:28px}
+.status{display:inline-block;padding:5px 12px;border-radius:20px;background:#dde6f0;font-weight:600}
+.passed{color:#126542;background:#e0f4e9}.failed,.error,.timeout,.cancelled,.no_tests{color:#9a2532;background:#ffe6e8}.skipped{color:#6e570e;background:#fff4cd}
+table{width:100%;border-collapse:collapse;background:white}th,td{text-align:left;padding:14px;border-bottom:1px solid #e0e5ed;vertical-align:top}th{background:#e7edf4}
+.table-wrap{overflow-x:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto;font-size:13px}details{margin-top:12px}footer{margin-top:30px;color:#506075}
+</style></head>
+<body><header><div class="brand">QUALITYBRIDGE / RELATÓRIO DE TESTES</div><h1>{{ run.project }}</h1>
+<span class="status {{ run.status }}">{{ run.status }}</span>
+<p class="meta">{{ run.runner }} · Suíte {{ run.suite }} · {{ '%.2f'|format(run.duration_seconds) }} s · {{ run.started_at.isoformat() }}</p>
+<p class="meta">Execução {{ run.id }}</p></header>
+<div class="cards">{% for label, value in [('Total',run.cases|length),('Aprovados',counts.passed),('Falhas',counts.failed),('Erros',counts.error),('Ignorados',counts.skipped)] %}
+<div class="card"><strong>{{ value }}</strong>{{ label }}</div>{% endfor %}</div>
+{% if run.diagnostics %}<section><h2>Diagnóstico da execução</h2><ul>{% for message in run.diagnostics %}<li>{{ message }}</li>{% endfor %}</ul></section>{% endif %}
+<h2>Resultados por teste</h2><div class="table-wrap"><table><thead><tr><th>Teste</th><th>Resultado</th><th>Duração</th></tr></thead><tbody>
+{% for case in run.cases %}<tr><td><strong>{{ case.name }}</strong><div class="meta">{{ case.classname }}</div>{% if case.quarantined %}<p class="status skipped">Em quarentena: {{ case.quarantine_reason }}</p>{% endif %}{% if case.message %}<details><summary>Detalhes</summary><pre>{{ case.message }}</pre></details>{% endif %}</td><td><span class="status {{ case.status }}">{{ case.status }}</span></td><td>{{ '%.3f'|format(case.duration_seconds) }} s</td></tr>
+{% else %}<tr><td colspan="3">Nenhum caso de teste foi coletado.</td></tr>{% endfor %}</tbody></table></div>
+{% if run.context %}<details><summary>Condi??es de execu??o</summary><dl>
+<dt>Plataforma</dt><dd>{{ run.context.platform }}</dd>
+<dt>Python</dt><dd>{{ run.context.python_version or 'n?o detectado' }}{% if run.context.python_executable %} ({{ run.context.python_executable }}){% endif %}</dd>
+<dt>Node.js</dt><dd>{{ run.context.node_version or 'n?o detectado' }}{% if run.context.node_executable %} ({{ run.context.node_executable }}){% endif %}</dd>
+<dt>Runner</dt><dd>{{ run.context.runner_version or run.runner }}</dd>
+<dt>Docker</dt><dd>{{ run.context.docker_image or ('sim' if run.context.docker else 'n?o') }}{% if run.context.docker_network %} / rede {{ run.context.docker_network }}{% endif %}</dd>
+<dt>Timeout</dt><dd>{{ run.context.timeout_seconds }} s</dd>
+<dt>Nomes das vari?veis configuradas</dt><dd>{{ run.context.configured_env_keys|join(', ') or 'nenhuma' }}</dd>
+</dl></details>{% endif %}
+<footer><p><a href="report.json">JSON</a> · <a href="junit.xml">JUnit XML</a> · <a href="execution.log">Log completo</a></p>
+<details><summary>Comando executado</summary><pre>{{ run.command|join(' ') }}</pre></details>
+<p>Resultados dos testes existentes no projeto. Todos os horários incluem o fuso.</p></footer></body></html>

@@ -1,0 +1,16 @@
+.venv/
+.tools/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.qualitybridge/
+.qualitybridge-demo/
+node_modules/
+test-results/
+playwright-report/
+.env
+

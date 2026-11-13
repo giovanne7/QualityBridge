@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qualitybridge"
+version = "0.1.0"
+description = "Agente determinístico de execução e análise de testes pytest, Playwright e Jest"
+requires-python = ">=3.11"
+dependencies = ["typer>=0.15,<1", "pydantic>=2.10,<3", "PyYAML>=6,<7", "Jinja2>=3.1.6,<4", "defusedxml>=0.7.1,<1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<10", "ruff>=0.11,<1"]
+
+[project.scripts]
+qualitybridge = "qualitybridge.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qualitybridge"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+

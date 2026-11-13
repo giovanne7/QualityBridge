@@ -1,0 +1,10 @@
+version: 1
+project: Aplicação web de exemplo
+runner: playwright
+timeout_seconds: 90
+suites:
+  full:
+    paths: [tests]
+  quick:
+    paths: [tests]
+    filter: "@smoke"
