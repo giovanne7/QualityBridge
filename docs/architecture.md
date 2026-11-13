@@ -22,6 +22,9 @@ flowchart TD
     CLI --> Flaky[Análise flaky e sugestões]
     Flaky --> History
     CLI --> Quarantine[Quarentena manual + auditoria]
+    CLI --> RCA[RCA: stack trace + Git + histórico]
+    RCA --> History
+    RCA -.opcional.-> LLM[LLM com validação de evidências]
     Quarantine --> History
 ```
 
@@ -39,7 +42,7 @@ flowchart TD
 
 ## Decisões
 
-1. **Sem LLM:** a seleção é explícita e reproduzível. Descobrir regras de negócio e gerar testes foi descartado porque não faz parte do agente definido pela equipe.
+1. **LLM opcional e restrito ao RCA:** a seleção e a execução continuam explícitas e reproduzíveis. O LLM só complementa a análise de causa raiz quando o usuário pede (`--llm`), e suas hipóteses precisam citar evidências reais; sem ele, o diagnóstico heurístico é usado. Gerar testes continua fora do escopo. Veja [rca.md](rca.md).
 2. **JUnit e JSON como formatos de entrada:** pytest e Playwright emitem JUnit; Jest emite JSON. Os adaptadores normalizam ambos para `TestCase`, evitando análise frágil do texto do terminal. Os artefatos originais são preservados.
 3. **Processos sem shell:** argumentos são listas e Playwright e Jest usam os CLIs locais do projeto. Comandos shell configuráveis foram descartados para reduzir problemas de quoting e execução acidental de metacaracteres.
 4. **Pastas únicas por execução:** evita usar resultados antigos e permite execuções simultâneas. Não existe um arquivo global de resultado sobrescrito a cada execução.
