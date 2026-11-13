@@ -90,7 +90,7 @@ O JSON tem versão de esquema, ID, projeto, ferramenta, suíte, horário UTC, du
 
 Erros de infraestrutura geram um caso sintético de erro no JUnit para que consumidores de CI não interpretem um relatório vazio como sucesso. `--timeout 60` substitui temporariamente o limite do YAML. Ctrl+C e timeout encerram a árvore de processos do executor. Erros na configuração são detectados antes da criação de uma execução.
 
-## DetecÃ§Ã£o de testes intermitentes
+## Detecção de testes intermitentes
 
 Para demonstrar o fluxo ponta a ponta, execute `qualitybridge flaky -c examples/flaky-project/qualitybridge.yaml --rerun 4`. O teste de exemplo alterna deliberadamente entre falha e sucesso; a análise deve classificá-lo como suspeito. Para sinalizá-lo, informe a identidade completa apresentada na saída:
 
@@ -102,9 +102,9 @@ qualitybridge quarantine -c examples/flaky-project/qualitybridge.yaml --action r
 
 A execução continua mesmo em quarentena; o estado e o motivo aparecem nos relatórios HTML, JSON e JUnit. O comando `qualitybridge quarantine --audit` mostra o histórico das decisões.
 
-`qualitybridge flaky` calcula, a partir do histÃ³rico, execuÃ§Ãµes, taxa de falhas, alternÃ¢ncias e classificaÃ§Ã£o por caso, considerando runner e suÃ­te. SÃ£o necessÃ¡rias trÃªs execuÃ§Ãµes por padrÃ£o; `--min-runs` e `--failure-threshold` ajustam os limites e `--limit` define quantas execuÃ§Ãµes recentes consultar. `--rerun N` repete a suÃ­te selecionada atÃ© 20 vezes, registrando cada resultado no histÃ³rico antes da anÃ¡lise. A quarentena Ã© uma recomendaÃ§Ã£o (`quarantine_recommended`), sem desabilitar testes. VariÃ¡veis de ambiente nÃ£o sÃ£o armazenadas; runner e suÃ­te identificam as condiÃ§Ãµes de execuÃ§Ã£o comparadas.
+`qualitybridge flaky` calcula, a partir do histórico, execuções, taxa de falhas, alternâncias e classificação por caso, considerando runner e suíte. São necessárias três execuções por padrão; `--min-runs` e `--failure-threshold` ajustam os limites e `--limit` define quantas execuções recentes consultar. `--rerun N` repete a suíte selecionada até 20 vezes, registrando cada resultado no histórico antes da análise. A quarentena é uma recomendação (`quarantine_recommended`), sem desabilitar testes. Variáveis de ambiente não são armazenadas; runner e suíte identificam as condições de execução comparadas.
 
-O contexto persistido inclui plataforma, versÃµes detectadas de Python e Node, modo/imagem/rede Docker, timeout e apenas os nomes das variÃ¡veis configuradas; valores de ambiente nunca sÃ£o gravados. `qualitybridge quarantine --action quarantine --test NOME --suite full --reason "motivo" --actor "responsavel"` registra uma decisÃ£o manual. Use `--action release` para removÃª-la e `--audit` para consultar o histÃ³rico de alteraÃ§Ãµes. A quarentena Ã© administrativa e nÃ£o pula a execuÃ§Ã£o: os resultados continuam sendo coletados. `qualitybridge suggestions` apresenta hipÃ³teses baseadas em padrÃµes de mensagens e stack traces, com ocorrÃªncias, exemplos de evidÃªncia e nÃ­vel de confianÃ§a; revise-as antes de alterar o teste.
+O contexto persistido inclui plataforma, versões detectadas de Python e Node, modo/imagem/rede Docker, timeout e apenas os nomes das variáveis configuradas; valores de ambiente nunca são gravados. `qualitybridge quarantine --action quarantine --test NOME --suite full --reason "motivo" --actor "responsavel"` registra uma decisão manual. Use `--action release` para removê-la e `--audit` para consultar o histórico de alterações. A quarentena é administrativa e não pula a execução: os resultados continuam sendo coletados. `qualitybridge suggestions` apresenta hipóteses baseadas em padrões de mensagens e stack traces, com ocorrências, exemplos de evidência e nível de confiança; revise-as antes de alterar o teste.
 
 Em execuções locais, as versões são lidas dos executáveis usados pelo runner. Em Docker, o contexto registra a imagem configurada e não tenta inferir versões internas do container. Registros antigos continuam legíveis; execuções anteriores à inclusão do contexto aparecem sem esses dados.
 
@@ -140,4 +140,4 @@ ruff check src tests
 qualitybridge run             # executa os testes do próprio agente e gera seus relatórios
 ```
 
-Veja [docs/architecture.md](docs/architecture.md) para camadas, padrões e decisões e [docs/acceptance.md](docs/acceptance.md) para o roteiro de demonstração. O agente funciona sozinho. Comunicação com os agentes Arquiteto e Documentação e gatilhos automáticos de CI/agendamento ficam fora do MVP descrito no PDF.
+Veja [docs/architecture.md](docs/architecture.md) para camadas, padrões e decisões, [docs/acceptance.md](docs/acceptance.md) para o roteiro de demonstração, [docs/validation.md](docs/validation.md) para o estado das evidências e [docs/entrega-atividades-1-e-6.md](docs/entrega-atividades-1-e-6.md) para o relatório consolidado e roteiro de apresentação. O agente funciona sozinho. Comunicação com os agentes Arquiteto e Documentação e gatilhos automáticos de CI/agendamento ficam fora do MVP descrito no PDF.
