@@ -38,6 +38,7 @@ def read_junit(path: Path) -> list[TestCase]:
             TestCase(
                 name=node.get("name", "sem nome"),
                 classname=node.get("classname", ""),
+                file_path=node.get("file", ""),
                 status=status,
                 duration_seconds=float(node.get("time", "0")),
                 message=message,

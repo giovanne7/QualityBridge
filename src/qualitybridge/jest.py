@@ -73,6 +73,7 @@ def read_jest(path: Path) -> list[TestCase]:
                 TestCase(
                     name=assertion.get("fullName") or assertion.get("title", "sem nome"),
                     classname=suite.get("name") or suite.get("testFilePath", ""),
+                    file_path=suite.get("testFilePath") or suite.get("name", ""),
                     status=status_map[raw_status],
                     duration_seconds=float(duration_ms) / 1000,
                     message=message,
@@ -89,6 +90,7 @@ def read_jest(path: Path) -> list[TestCase]:
                 TestCase(
                     name="Erro da suíte",
                     classname=suite.get("name") or suite.get("testFilePath", ""),
+                    file_path=suite.get("testFilePath") or suite.get("name", ""),
                     status="error",
                     message=message or "Falha na execução da suíte Jest.",
                     stack_trace=stack_trace,

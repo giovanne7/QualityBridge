@@ -56,6 +56,7 @@ class ProjectConfig(StrictModel):
 class TestCase(StrictModel):
     name: str
     classname: str = ""
+    file_path: str = ""
     status: Literal["passed", "failed", "error", "skipped"]
     duration_seconds: float = Field(default=0, ge=0, allow_inf_nan=False)
     message: str = ""
