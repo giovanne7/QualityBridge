@@ -11,6 +11,8 @@ from qualitybridge.config import ConfigurationError, load_config
 from qualitybridge.controller import run_project
 from qualitybridge.flaky import analyze_runs
 from qualitybridge.history import HistoryStore
+from qualitybridge.llm import LLMError, client_from_env
+from qualitybridge.rca import GitHistory, RootCauseAnalyzer
 from qualitybridge.suggestions import suggestions_as_dicts
 
 app = typer.Typer(
@@ -278,3 +280,64 @@ def suggestions(
         typer.echo(str(exc), err=True)
         raise typer.Exit(2)
     typer.echo(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+@app.command()
+def rca(
+    config: ConfigOption = Path("qualitybridge.yaml"),
+    run_id: Annotated[
+        str | None, typer.Option("--run", help="ID da execução; padrão: última com falhas.")
+    ] = None,
+    commits: Annotated[
+        int, typer.Option("--commits", min=0, max=200, help="Commits recentes analisados.")
+    ] = 10,
+    use_llm: Annotated[
+        bool,
+        typer.Option(
+            "--llm/--no-llm",
+            help="Consulta o LLM configurado por variáveis QUALITYBRIDGE_LLM_*.",
+        ),
+    ] = False,
+    max_llm_cases: Annotated[int, typer.Option("--max-llm-cases", min=1, max=100)] = 10,
+):
+    """Investiga a causa raiz das falhas com stack trace, Git, histórico e LLM opcional."""
+    try:
+        settings, root, output = load_config(config)
+        runs = HistoryStore(output / "history.sqlite3").recent(settings.project, 1000)
+        if run_id:
+            target = next((run for run in runs if run.id == run_id), None)
+            if target is None:
+                raise ConfigurationError(f"Execução não encontrada: {run_id}")
+        else:
+            target = next(
+                (run for run in runs if any(c.status in ("failed", "error") for c in run.cases)),
+                None,
+            )
+            if target is None:
+                typer.echo("Nenhuma execução com falhas registrada no histórico.")
+                return
+        llm = client_from_env() if use_llm else None
+        if use_llm and llm is None:
+            raise ConfigurationError(
+                "Nenhum LLM configurado. Defina ANTHROPIC_API_KEY ou "
+                "QUALITYBRIDGE_LLM_PROVIDER/QUALITYBRIDGE_LLM_MODEL (veja docs/rca.md)."
+            )
+        changes = GitHistory(root, max_commits=commits) if commits else None
+        report = RootCauseAnalyzer(
+            changes=changes, llm=llm, history=runs, max_llm_cases=max_llm_cases
+        ).analyze(target)
+    except (ConfigurationError, LLMError, sqlite3.Error, OSError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2)
+    data = report.model_dump_json(indent=2)
+    run_directory = output / "runs" / target.id
+    if run_directory.is_dir():
+        (run_directory / "rca.json").write_text(data, encoding="utf-8")
+    typer.echo(data)
+    for diagnosis in report.diagnoses:
+        if diagnosis.primary:
+            typer.echo(
+                f"{diagnosis.test_name}: {diagnosis.primary.category} "
+                f"({diagnosis.primary.confidence:.0%}) — {diagnosis.primary.cause}",
+                err=True,
+            )
