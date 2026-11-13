@@ -1,4 +1,3 @@
-
 import pytest
 
 from qualitybridge.config import ConfigurationError

@@ -61,6 +61,22 @@ class TestCase(StrictModel):
     duration_seconds: float = Field(default=0, ge=0, allow_inf_nan=False)
     message: str = ""
     stack_trace: str = ""
+    quarantined: bool = False
+    quarantine_reason: str = ""
+
+
+class ExecutionContext(StrictModel):
+    platform: str
+    python_version: str | None = None
+    python_executable: str | None = None
+    node_executable: str | None = None
+    node_version: str | None = None
+    runner_version: str | None = None
+    docker: bool = False
+    docker_image: str | None = None
+    docker_network: str | None = None
+    configured_env_keys: list[str] = Field(default_factory=list)
+    timeout_seconds: int
 
 
 class RunResult(StrictModel):
@@ -74,6 +90,7 @@ class RunResult(StrictModel):
     status: Literal["passed", "failed", "error", "timeout", "cancelled", "no_tests"]
     exit_code: int | None
     command: list[str]
+    context: ExecutionContext | None = None
     cases: list[TestCase] = Field(default_factory=list)
     diagnostics: list[str] = Field(default_factory=list)
     artifacts: dict[str, str] = Field(default_factory=dict)

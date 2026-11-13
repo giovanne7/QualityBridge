@@ -75,6 +75,7 @@ def read_junit(path: Path) -> list[TestCase]:
 
     return cases
 
+
 def write_junit(result: RunResult, path: Path) -> None:
     counts = result.counts
     infrastructure = result.status in ("error", "timeout", "cancelled", "no_tests")
@@ -99,6 +100,21 @@ def write_junit(result: RunResult, path: Path) -> None:
             classname=case.classname,
             time=str(case.duration_seconds),
         )
+
+        if case.quarantined:
+            properties = ET.SubElement(node, "properties")
+            ET.SubElement(
+                properties,
+                "property",
+                name="qualitybridge.quarantined",
+                value="true",
+            )
+            ET.SubElement(
+                properties,
+                "property",
+                name="qualitybridge.quarantine_reason",
+                value=case.quarantine_reason,
+            )
 
         if case.status != "passed":
             tag = {"failed": "failure", "error": "error", "skipped": "skipped"}[case.status]

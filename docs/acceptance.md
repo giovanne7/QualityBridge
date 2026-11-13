@@ -11,4 +11,5 @@
 9. Execute `qualitybridge run` para gerar um relatório dos próprios testes do agente.
 10. Se Docker estiver disponível, construa a imagem do README e execute `qualitybridge run --docker`.
 
+11. Demonstre `examples/flaky-project`: `qualitybridge flaky -c examples/flaky-project/qualitybridge.yaml --rerun 4` deve registrar quatro resultados alternados, recomendar quarentena e exibir taxas, alternâncias e condições de execução. Aplique e libere a quarentena e confira HTML/JSON/JUnit e `qualitybridge quarantine --audit`.
 Na apresentação, relacione as camadas e classes com os padrões descritos em `architecture.md`. A relação com a ODS 9 é indireta: automação da verificação de software, redução de retrabalho e manutenção de sistemas mais confiáveis.
