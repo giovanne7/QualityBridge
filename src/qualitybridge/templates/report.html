@@ -23,14 +23,14 @@ table{width:100%;border-collapse:collapse;background:white}th,td{text-align:left
 <h2>Resultados por teste</h2><div class="table-wrap"><table><thead><tr><th>Teste</th><th>Resultado</th><th>Duração</th></tr></thead><tbody>
 {% for case in run.cases %}<tr><td><strong>{{ case.name }}</strong><div class="meta">{{ case.classname }}</div>{% if case.quarantined %}<p class="status skipped">Em quarentena: {{ case.quarantine_reason }}</p>{% endif %}{% if case.message %}<details><summary>Detalhes</summary><pre>{{ case.message }}</pre></details>{% endif %}</td><td><span class="status {{ case.status }}">{{ case.status }}</span></td><td>{{ '%.3f'|format(case.duration_seconds) }} s</td></tr>
 {% else %}<tr><td colspan="3">Nenhum caso de teste foi coletado.</td></tr>{% endfor %}</tbody></table></div>
-{% if run.context %}<details><summary>Condi??es de execu??o</summary><dl>
+{% if run.context %}<details><summary>Condições de execução</summary><dl>
 <dt>Plataforma</dt><dd>{{ run.context.platform }}</dd>
-<dt>Python</dt><dd>{{ run.context.python_version or 'n?o detectado' }}{% if run.context.python_executable %} ({{ run.context.python_executable }}){% endif %}</dd>
-<dt>Node.js</dt><dd>{{ run.context.node_version or 'n?o detectado' }}{% if run.context.node_executable %} ({{ run.context.node_executable }}){% endif %}</dd>
+<dt>Python</dt><dd>{{ run.context.python_version or 'não detectado' }}{% if run.context.python_executable %} ({{ run.context.python_executable }}){% endif %}</dd>
+<dt>Node.js</dt><dd>{{ run.context.node_version or 'não detectado' }}{% if run.context.node_executable %} ({{ run.context.node_executable }}){% endif %}</dd>
 <dt>Runner</dt><dd>{{ run.context.runner_version or run.runner }}</dd>
-<dt>Docker</dt><dd>{{ run.context.docker_image or ('sim' if run.context.docker else 'n?o') }}{% if run.context.docker_network %} / rede {{ run.context.docker_network }}{% endif %}</dd>
+<dt>Docker</dt><dd>{{ run.context.docker_image or ('sim' if run.context.docker else 'não') }}{% if run.context.docker_network %} / rede {{ run.context.docker_network }}{% endif %}</dd>
 <dt>Timeout</dt><dd>{{ run.context.timeout_seconds }} s</dd>
-<dt>Nomes das vari?veis configuradas</dt><dd>{{ run.context.configured_env_keys|join(', ') or 'nenhuma' }}</dd>
+<dt>Nomes das variáveis configuradas</dt><dd>{{ run.context.configured_env_keys|join(', ') or 'nenhuma' }}</dd>
 </dl></details>{% endif %}
 <footer><p><a href="report.json">JSON</a> · <a href="junit.xml">JUnit XML</a> · <a href="execution.log">Log completo</a></p>
 <details><summary>Comando executado</summary><pre>{{ run.command|join(' ') }}</pre></details>
