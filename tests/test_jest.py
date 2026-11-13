@@ -1,4 +1,3 @@
-
 import json
 
 from qualitybridge.jest import read_jest

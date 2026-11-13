@@ -41,6 +41,7 @@ class PlaywrightAdapter(TestAdapter):
     def environment(self, report: Path) -> dict[str, str]:
         return {"PLAYWRIGHT_JUNIT_OUTPUT_FILE": str(report), "PLAYWRIGHT_JUNIT_STRIP_ANSI": "true"}
 
+
 class JestAdapter(TestAdapter):
     def command(self, config, suite, root, report, docker=False):
         cli = "node_modules/jest/bin/jest.js"
@@ -56,6 +57,7 @@ class JestAdapter(TestAdapter):
 
         return args + suite.paths
 
+
 class ExecutorFactory(ABC):
     @abstractmethod
     def create_adapter(self) -> TestAdapter: ...
@@ -70,9 +72,11 @@ class PlaywrightFactory(ExecutorFactory):
     def create_adapter(self) -> TestAdapter:
         return PlaywrightAdapter()
 
+
 class JestFactory(ExecutorFactory):
     def create_adapter(self) -> TestAdapter:
         return JestAdapter()
+
 
 def factory_for(runner: str) -> ExecutorFactory:
     factories = {

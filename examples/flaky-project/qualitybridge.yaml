@@ -1,0 +1,9 @@
+version: 1
+project: Demonstração de teste intermitente
+runner: pytest
+root: .
+output_dir: .qualitybridge-demo
+timeout_seconds: 30
+suites:
+  full:
+    paths: [tests]

@@ -1,6 +1,9 @@
+import json
 import os
+import platform
 import sqlite3
 import subprocess
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -14,7 +17,7 @@ from qualitybridge.config import ConfigurationError, load_config
 from qualitybridge.history import HistoryStore
 from qualitybridge.jest import read_jest
 from qualitybridge.junit import read_junit
-from qualitybridge.models import RunResult
+from qualitybridge.models import ExecutionContext, RunResult
 from qualitybridge.process import execute
 from qualitybridge.reports import write_reports
 from qualitybridge.strategies import select_suite
@@ -41,9 +44,7 @@ def run_project(
     else:
         report = directory / "raw-junit.xml"
 
-    target_report = (
-        Path("/qualitybridge-output") / report.name if use_docker else report
-    )
+    target_report = Path("/qualitybridge-output") / report.name if use_docker else report
 
     # POSIX container paths must not be normalized using the Windows host's separators.
     runner_command = adapter.command(config, suite, root, target_report, use_docker)
@@ -58,6 +59,57 @@ def run_project(
             for k, v in runner_env.items()
         }
     env = {**os.environ, **runner_env}
+    node_version = None
+    runner_version = None
+    python_version = None if use_docker else sys.version.split()[0]
+    if not use_docker and config.runner == "pytest":
+        try:
+            python_executable = config.python or sys.executable
+            python_result = subprocess.run(
+                [python_executable, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                check=False,
+                cwd=root,
+            )
+            python_version = (
+                python_result.stdout or python_result.stderr
+            ).strip() or python_version
+            runner_result = subprocess.run(
+                [python_executable, "-m", "pytest", "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+                cwd=root,
+            )
+            runner_version = (runner_result.stdout or runner_result.stderr).strip() or None
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    elif not use_docker and config.runner in ("playwright", "jest"):
+        try:
+            node_version = (
+                subprocess.run(
+                    [config.node, "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                    check=False,
+                    cwd=root,
+                ).stdout.strip()
+                or None
+            )
+            package = (
+                root / "node_modules" / "@playwright" / "test" / "package.json"
+                if config.runner == "playwright"
+                else root / "node_modules" / "jest" / "package.json"
+            )
+            runner_version = json.loads(package.read_text(encoding="utf-8")).get("version")
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        except (json.JSONDecodeError, AttributeError, UnicodeError):
+            pass
     command = runner_command
     container_name = "qualitybridge-" + run_id.lower()
     if use_docker:
@@ -159,9 +211,37 @@ def run_project(
         status=status,
         exit_code=process.exit_code,
         command=command,
+        context=ExecutionContext(
+            platform=platform.platform(),
+            python_version=python_version,
+            python_executable=(
+                config.python or sys.executable if config.runner == "pytest" else None
+            ),
+            node_executable=config.node if config.runner in ("playwright", "jest") else None,
+            node_version=node_version,
+            runner_version=runner_version,
+            docker=use_docker,
+            docker_image=config.docker.image if use_docker and config.docker else None,
+            docker_network=config.docker.network if use_docker and config.docker else None,
+            configured_env_keys=sorted(config.env),
+            timeout_seconds=timeout or config.timeout_seconds,
+        ),
         cases=cases,
         diagnostics=diagnostics,
     )
+    quarantine_reasons = HistoryStore(output / "history.sqlite3").quarantine_reasons(
+        config.project, config.runner, suite_name
+    )
+    if quarantine_reasons:
+        result.cases = [
+            case.model_copy(
+                update={
+                    "quarantined": (case.classname, case.name) in quarantine_reasons,
+                    "quarantine_reason": quarantine_reasons.get((case.classname, case.name), ""),
+                }
+            )
+            for case in result.cases
+        ]
     write_reports(result, directory)
     try:
         HistoryStore(output / "history.sqlite3").save(result)

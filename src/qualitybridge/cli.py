@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from dataclasses import asdict
 from pathlib import Path
 from typing import Annotated
 
@@ -8,7 +9,9 @@ import yaml
 
 from qualitybridge.config import ConfigurationError, load_config
 from qualitybridge.controller import run_project
+from qualitybridge.flaky import analyze_runs
 from qualitybridge.history import HistoryStore
+from qualitybridge.suggestions import suggestions_as_dicts
 
 app = typer.Typer(
     no_args_is_help=True, help="QualityBridge — agente de testes pytest, Playwright e Jest."
@@ -125,3 +128,153 @@ def history(
                 f"{result.id} | {result.suite} | {result.status} | "
                 f"{len(result.cases)} testes | {result.duration_seconds:.2f}s"
             )
+
+
+@app.command()
+def flaky(
+    config: ConfigOption = Path("qualitybridge.yaml"),
+    suite: Annotated[str, typer.Option("--suite", "-s")] = "full",
+    limit: Annotated[int, typer.Option(min=2, max=1000)] = 100,
+    min_runs: Annotated[int, typer.Option("--min-runs", min=2, max=1000)] = 3,
+    failure_threshold: Annotated[float, typer.Option("--failure-threshold", min=0, max=1)] = 0.1,
+    rerun: Annotated[
+        int,
+        typer.Option(
+            "--rerun",
+            min=0,
+            max=20,
+            help="Executa novamente a suíte esta quantidade de vezes.",
+        ),
+    ] = 0,
+    docker: Annotated[bool, typer.Option(help="Usa a imagem Docker definida no YAML.")] = False,
+):
+    """Analisa histórico e sinaliza testes possivelmente intermitentes."""
+    try:
+        settings, _, output = load_config(config)
+        if suite not in settings.suites:
+            raise ConfigurationError(f"Suíte desconhecida: {suite}")
+        if docker and settings.docker is None:
+            raise ConfigurationError("Defina docker.image no YAML para usar --docker.")
+        store = HistoryStore(output / "history.sqlite3")
+        for attempt in range(rerun):
+            result, _ = run_project(config, suite_name=suite, use_docker=docker)
+            typer.echo(
+                f"Reexecução {attempt + 1}/{rerun}: {result.status} ({len(result.cases)} testes)"
+            )
+        runs = [run for run in store.recent(settings.project, 1000) if run.suite == suite][:limit]
+        metrics = analyze_runs(
+            runs,
+            min_runs=min_runs,
+            failure_threshold=failure_threshold,
+        )
+    except (ConfigurationError, sqlite3.Error, OSError, ValueError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2)
+    if not metrics:
+        typer.echo("Nenhum teste encontrado no histórico para esta suíte.")
+        return
+    quarantine_keys = {
+        (item["runner"], item["suite"], item["classname"], item["test_name"])
+        for item in store.quarantined(settings.project)
+    }
+    output_metrics = []
+    for metric in metrics:
+        data = asdict(metric)
+        data["quarantined"] = (
+            metric.runner,
+            metric.suite,
+            metric.classname,
+            metric.name,
+        ) in quarantine_keys
+        contexts = {}
+        for run in runs:
+            if (run.runner, run.suite) != (metric.runner, metric.suite):
+                continue
+            if (
+                not any(
+                    case.classname == metric.classname and case.name == metric.name
+                    for case in run.cases
+                )
+                or run.context is None
+            ):
+                continue
+            context = run.context.model_dump(mode="json")
+            contexts[json.dumps(context, sort_keys=True)] = context
+        data["execution_conditions"] = list(contexts.values())[:5]
+        output_metrics.append(data)
+    typer.echo(json.dumps(output_metrics, ensure_ascii=False, indent=2))
+
+
+@app.command()
+def quarantine(
+    config: ConfigOption = Path("qualitybridge.yaml"),
+    action: Annotated[
+        str,
+        typer.Option("--action", help="list, quarantine ou release."),
+    ] = "list",
+    test_name: Annotated[str | None, typer.Option("--test")] = None,
+    classname: Annotated[str, typer.Option("--classname")] = "",
+    runner: Annotated[str | None, typer.Option("--runner")] = None,
+    suite: Annotated[str, typer.Option("--suite")] = "full",
+    reason: Annotated[str, typer.Option("--reason")] = "",
+    actor: Annotated[str, typer.Option("--actor")] = "",
+    audit: Annotated[bool, typer.Option("--audit")] = False,
+):
+    """Lista, aplica ou remove quarentena manual com trilha de auditoria."""
+    try:
+        settings, _, output = load_config(config)
+        store = HistoryStore(output / "history.sqlite3")
+        if action == "list":
+            data = (
+                store.quarantine_audit(settings.project)
+                if audit
+                else store.quarantined(settings.project)
+            )
+        elif action in ("quarantine", "release"):
+            if not test_name:
+                raise ConfigurationError("Informe --test para alterar a quarentena.")
+            selected_runner = runner or settings.runner
+            if selected_runner not in ("pytest", "playwright", "jest"):
+                raise ConfigurationError("Runner inválido.")
+            if suite not in settings.suites:
+                raise ConfigurationError(f"Suíte desconhecida: {suite}")
+            store.quarantine(
+                settings.project,
+                selected_runner,
+                suite,
+                classname,
+                test_name,
+                action,
+                reason,
+                actor,
+            )
+            data = store.quarantine_audit(settings.project, limit=1)
+        else:
+            raise ConfigurationError("--action deve ser list, quarantine ou release.")
+    except (ConfigurationError, sqlite3.Error, OSError, ValueError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2)
+    typer.echo(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+@app.command()
+def suggestions(
+    config: ConfigOption = Path("qualitybridge.yaml"),
+    limit: Annotated[int, typer.Option(min=1, max=1000)] = 100,
+    suite: Annotated[str | None, typer.Option("--suite", "-s")] = None,
+):
+    """Apresenta hipóteses de correção baseadas em falhas e evidências do histórico."""
+    try:
+        settings, _, output = load_config(config)
+        if suite is not None and suite not in settings.suites:
+            raise ConfigurationError(f"Suíte desconhecida: {suite}")
+        recent_runs = HistoryStore(output / "history.sqlite3").recent(settings.project, 1000)
+        if suite:
+            runs = [run for run in recent_runs if run.suite == suite][:limit]
+        else:
+            runs = recent_runs[:limit]
+        data = suggestions_as_dicts(runs)
+    except (ConfigurationError, sqlite3.Error, OSError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2)
+    typer.echo(json.dumps(data, ensure_ascii=False, indent=2))

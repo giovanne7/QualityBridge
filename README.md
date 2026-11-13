@@ -1,6 +1,6 @@
 # QualityBridge
 
-Agente de testes de software da AEP. Executa testes **já existentes** em projetos pytest e Playwright, seleciona suítes por configuração e gera relatórios HTML, JSON e JUnit XML, logs e histórico SQLite. Não usa LLM nem gera testes automaticamente. O MVP é uma aplicação de linha de comando, conforme `AEP_Entrega1_3agentes.pdf`.
+Agente de testes de software da AEP. Executa testes **já existentes** em projetos pytest, Playwright e Jest, seleciona suítes por configuração e gera relatórios HTML, JSON e JUnit XML, logs e histórico SQLite. Não usa LLM nem gera testes automaticamente. O MVP é uma aplicação de linha de comando, conforme `AEP_Entrega1_3agentes.pdf`.
 
 ## Instalação
 
@@ -25,6 +25,9 @@ qualitybridge run
 qualitybridge run --suite quick
 qualitybridge history
 qualitybridge history --json
+qualitybridge flaky
+qualitybridge quarantine
+qualitybridge suggestions
 ```
 
 `init` cria `qualitybridge.yaml` na pasta atual e recusa sobrescrever um arquivo existente. Ajuste os seletores e marque os testes rápidos antes de executar `quick`. Também é possível fornecer `--config caminho/qualitybridge.yaml` em cada comando, sem mudar o diretório do terminal.
@@ -32,7 +35,7 @@ qualitybridge history --json
 ```yaml
 version: 1
 project: Meu projeto
-runner: pytest                 # pytest ou playwright
+runner: pytest                 # pytest, playwright ou jest
 root: .                       # relativo ao arquivo YAML
 output_dir: .qualitybridge     # relativo à raiz do projeto
 timeout_seconds: 300
@@ -85,6 +88,24 @@ O JSON tem versão de esquema, ID, projeto, ferramenta, suíte, horário UTC, du
 | cancelled | 130 | Interrompido com Ctrl+C |
 
 Erros de infraestrutura geram um caso sintético de erro no JUnit para que consumidores de CI não interpretem um relatório vazio como sucesso. `--timeout 60` substitui temporariamente o limite do YAML. Ctrl+C e timeout encerram a árvore de processos do executor. Erros na configuração são detectados antes da criação de uma execução.
+
+## DetecÃ§Ã£o de testes intermitentes
+
+Para demonstrar o fluxo ponta a ponta, execute `qualitybridge flaky -c examples/flaky-project/qualitybridge.yaml --rerun 4`. O teste de exemplo alterna deliberadamente entre falha e sucesso; a análise deve classificá-lo como suspeito. Para sinalizá-lo, informe a identidade completa apresentada na saída:
+
+```powershell
+qualitybridge quarantine -c examples/flaky-project/qualitybridge.yaml --action quarantine --test test_alternates_between_pass_and_failure --classname examples.flaky-project.tests.test_flaky_demo --reason "intermitência demonstrada" --actor "seu nome"
+qualitybridge run -c examples/flaky-project/qualitybridge.yaml
+qualitybridge quarantine -c examples/flaky-project/qualitybridge.yaml --action release --test test_alternates_between_pass_and_failure --classname examples.flaky-project.tests.test_flaky_demo --reason "revisão concluída" --actor "seu nome"
+```
+
+A execução continua mesmo em quarentena; o estado e o motivo aparecem nos relatórios HTML, JSON e JUnit. O comando `qualitybridge quarantine --audit` mostra o histórico das decisões.
+
+`qualitybridge flaky` calcula, a partir do histÃ³rico, execuÃ§Ãµes, taxa de falhas, alternÃ¢ncias e classificaÃ§Ã£o por caso, considerando runner e suÃ­te. SÃ£o necessÃ¡rias trÃªs execuÃ§Ãµes por padrÃ£o; `--min-runs` e `--failure-threshold` ajustam os limites e `--limit` define quantas execuÃ§Ãµes recentes consultar. `--rerun N` repete a suÃ­te selecionada atÃ© 20 vezes, registrando cada resultado no histÃ³rico antes da anÃ¡lise. A quarentena Ã© uma recomendaÃ§Ã£o (`quarantine_recommended`), sem desabilitar testes. VariÃ¡veis de ambiente nÃ£o sÃ£o armazenadas; runner e suÃ­te identificam as condiÃ§Ãµes de execuÃ§Ã£o comparadas.
+
+O contexto persistido inclui plataforma, versÃµes detectadas de Python e Node, modo/imagem/rede Docker, timeout e apenas os nomes das variÃ¡veis configuradas; valores de ambiente nunca sÃ£o gravados. `qualitybridge quarantine --action quarantine --test NOME --suite full --reason "motivo" --actor "responsavel"` registra uma decisÃ£o manual. Use `--action release` para removÃª-la e `--audit` para consultar o histÃ³rico de alteraÃ§Ãµes. A quarentena Ã© administrativa e nÃ£o pula a execuÃ§Ã£o: os resultados continuam sendo coletados. `qualitybridge suggestions` apresenta hipÃ³teses baseadas em padrÃµes de mensagens e stack traces, com ocorrÃªncias, exemplos de evidÃªncia e nÃ­vel de confianÃ§a; revise-as antes de alterar o teste.
+
+Em execuções locais, as versões são lidas dos executáveis usados pelo runner. Em Docker, o contexto registra a imagem configurada e não tenta inferir versões internas do container. Registros antigos continuam legíveis; execuções anteriores à inclusão do contexto aparecem sem esses dados.
 
 ## Docker
 

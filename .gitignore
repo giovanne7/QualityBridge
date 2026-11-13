@@ -8,6 +8,7 @@ __pycache__/
 dist/
 build/
 .qualitybridge/
+.qualitybridge-demo/
 node_modules/
 test-results/
 playwright-report/
